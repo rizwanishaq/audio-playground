@@ -6,10 +6,10 @@ import FrequencyDomainVisualizer from './FrequencyDomainVisualizer';
 const AudioInput = () => {
   const [timeDomainData, setTimeDomainData] = useState(null);
   const [frequencyDomainData, setFrequencyDomainData] = useState(null);
+  const [isAudioStarted, setIsAudioStarted] = useState(false);
   const audioCtxRef = useRef(null);
 
-  useEffect(() => {
-    // Ensure code only runs on the client side
+  const startAudio = () => {
     if (typeof window !== 'undefined') {
       navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -53,7 +53,9 @@ const AudioInput = () => {
         drawVisualization();
       });
     }
+  };
 
+  useEffect(() => {
     return () => {
       if (audioCtxRef.current) {
         audioCtxRef.current.close();
@@ -63,12 +65,26 @@ const AudioInput = () => {
 
   return (
     <div className="w-full h-screen flex flex-col items-center">
-      <div className="w-full flex-1 flex items-center justify-center mb-4">
-        <TimeDomainVisualizer data={timeDomainData} />
-      </div>
-      <div className="w-full flex-1 flex items-center justify-center">
-        <FrequencyDomainVisualizer data={frequencyDomainData} />
-      </div>
+      {!isAudioStarted ? (
+        <button
+          onClick={() => {
+            setIsAudioStarted(true);
+            startAudio();
+          }}
+          className="bg-blue-500 text-white px-4 py-2 rounded"
+        >
+          Start Audio
+        </button>
+      ) : (
+        <>
+          <div className="w-full flex-1 flex items-center justify-center mb-4">
+            <TimeDomainVisualizer data={timeDomainData} />
+          </div>
+          <div className="w-full flex-1 flex items-center justify-center">
+            <FrequencyDomainVisualizer data={frequencyDomainData} />
+          </div>
+        </>
+      )}
     </div>
   );
 };
