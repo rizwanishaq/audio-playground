@@ -1,4 +1,4 @@
-'use client'
+'use client';
 import { useEffect, useRef, useState } from 'react';
 import TimeDomainVisualizer from './TimeDomainVisualizer';
 import FrequencyDomainVisualizer from './FrequencyDomainVisualizer';
@@ -9,6 +9,7 @@ const AudioInput = () => {
   const audioCtxRef = useRef(null);
 
   useEffect(() => {
+    // Ensure code only runs on the client side
     if (typeof window !== 'undefined') {
       navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
