@@ -20,73 +20,106 @@ const AudioAnalyzer = () => {
     .domain([0, 50])  // Adjust domain as needed based on your value range
     .range(["#d4edda", "#c3e6cb"]);  // Color gradient from light green (low) to dark green (high)
 
-  useEffect(() => {
-    const svg = d3.select(svgRef.current);
-    const width = 600;
-    const height = 300;
-    const margin = { top: 20, right: 30, bottom: 30, left: 40 };
-
-    svg.attr("width", width + margin.left + margin.right)
-      .attr("height", height + margin.top + margin.bottom);
-
-    const g = svg.append("g")
-      .attr("transform", `translate(${margin.left},${margin.top})`);
-
-    // X scale for time/depth axis
-    const xScale = d3.scaleLinear().domain([0, depth]).range([0, width]);
-
-    // Y scale for feature values (e.g., RMS, Centroid, etc.)
-    const yScale = d3.scaleLinear().domain([0, 1]).range([height, 0]);
-
-    // Create a grid to simulate 3D perspective
-    for (let i = 0; i <= depth; i++) {
-      g.append("line")
-        .attr("x1", 0)
-        .attr("x2", width)
-        .attr("y1", yScale(i / depth))
-        .attr("y2", yScale(i / depth))
-        .attr("stroke", "green")
-        .attr("stroke-width", 1);
-    }
-
-    // Paths for each feature
-    const pathRMS = g.append("path").attr("fill", "none").attr("stroke", "magenta").attr("stroke-width", 2);
-    const pathCentroid = g.append("path").attr("fill", "none").attr("stroke", "yellow").attr("stroke-width", 2);
-    const pathRolloff = g.append("path").attr("fill", "none").attr("stroke", "blue").attr("stroke-width", 2);
-
-    const updateChart = () => {
-      const lineRMS = d3.line()
-        .x((d, i) => xScale(i))
-        .y((d) => yScale(d.rms))
-        .curve(d3.curveMonotoneX);
-
-      const lineCentroid = d3.line()
-        .x((d, i) => xScale(i))
-        .y((d) => yScale(d.spectralCentroid))
-        .curve(d3.curveMonotoneX);
-
-      const lineRolloff = d3.line()
-        .x((d, i) => xScale(i))
-        .y((d) => yScale(d.spectralRolloff))
-        .curve(d3.curveMonotoneX);
-
-      pathRMS.datum(features).attr("d", lineRMS);
-      pathCentroid.datum(features).attr("d", lineCentroid);
-      pathRolloff.datum(features).attr("d", lineRolloff);
-    };
-
-    const animate = () => {
-      updateChart();
-      requestAnimationFrame(animate);
-    };
-
-    animate();
-
-    return () => {
-      svg.selectAll("*").remove();
-    };
-  }, [features]);
-
+    useEffect(() => {
+      const svg = d3.select(svgRef.current);
+      const width = 600;
+      const height = 300;
+      const margin = { top: 20, right: 30, bottom: 30, left: 40 };
+    
+      svg.attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom);
+    
+      const g = svg.append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+    
+      const xScale = d3.scaleLinear().domain([0, depth]).range([0, width]);
+    
+      // Paths for each feature
+      const pathRMS = g.append("path").attr("fill", "none").attr("stroke", "magenta").attr("stroke-width", 2);
+      const pathCentroid = g.append("path").attr("fill", "none").attr("stroke", "yellow").attr("stroke-width", 2);
+      const pathRolloff = g.append("path").attr("fill", "none").attr("stroke", "blue").attr("stroke-width", 2);
+    
+      const legend = svg.append("g").attr("transform", `translate(${width - 120},${margin.top})`);
+    
+      const legends = [
+        { color: "magenta", label: "RMS" },
+        { color: "yellow", label: "Spectral Centroid" },
+        { color: "blue", label: "Spectral Rolloff" },
+      ];
+    
+      legends.forEach((d, i) => {
+        const legendGroup = legend.append("g").attr("transform", `translate(0, ${i * 20})`);
+    
+        legendGroup.append("rect")
+          .attr("x", 0)
+          .attr("y", 0)
+          .attr("width", 18)
+          .attr("height", 18)
+          .attr("fill", d.color);
+    
+        legendGroup.append("text")
+          .attr("x", 24)
+          .attr("y", 9)
+          .attr("dy", "0.35em")
+          .style("text-anchor", "start")
+          .style("font-size", "12px")
+          .text(d.label);
+      });
+    
+      // Dynamic scaling based on actual data range
+      const spectralCentroidValues = features.map(f => f.spectralCentroid);
+      const minCentroid = d3.min(spectralCentroidValues);
+      const maxCentroid = d3.max(spectralCentroidValues);
+    
+      // Scaling factors for better visibility
+      const scaleFactor = {
+        rms: 2,
+        spectralCentroid: 1 / (maxCentroid || 1), // Dynamic scaling based on range
+        spectralRolloff: 0.2,
+      };
+    
+      // Y scale for general feature values
+      const yScale = d3.scaleLinear().domain([0, 1]).range([height, 0]);
+    
+      // Dynamic Y scale for spectralCentroid
+      const yScaleCentroid = d3.scaleLinear()
+        .domain([minCentroid, maxCentroid])
+        .range([height, 0]);
+    
+      const updateChart = () => {
+        const lineRMS = d3.line()
+          .x((d, i) => xScale(i))
+          .y((d) => yScale(d.rms * scaleFactor.rms))
+          .curve(d3.curveMonotoneX);
+    
+        const lineCentroid = d3.line()
+          .x((d, i) => xScale(i))
+          .y((d) => yScaleCentroid(d.spectralCentroid)) // Use dynamic yScale for Centroid
+          .curve(d3.curveMonotoneX);
+    
+        const lineRolloff = d3.line()
+          .x((d, i) => xScale(i))
+          .y((d) => yScale(d.spectralRolloff * scaleFactor.spectralRolloff))
+          .curve(d3.curveMonotoneX);
+    
+        pathRMS.datum(features).attr("d", lineRMS);
+        pathCentroid.datum(features).attr("d", lineCentroid);
+        pathRolloff.datum(features).attr("d", lineRolloff);
+      };
+    
+      const animate = () => {
+        updateChart();
+        requestAnimationFrame(animate);
+      };
+    
+      animate();
+    
+      return () => {
+        svg.selectAll("*").remove();
+      };
+    }, [features]);
+    
+    
   const startRecording = async () => {
     if (!isRecording) {
       try {
