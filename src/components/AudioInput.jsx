@@ -147,7 +147,7 @@ const AudioInput = () => {
                 </div>
               ) : (
                 <div className="w-full flex-1 flex items-center justify-center">
-                  <CircularFrequencyDomainVisualizer data={frequencyDomainData} />
+                  <CircularFrequencyDomainVisualizer data={frequencyDomainData}  />
                   <Tooltip id="circular-frequency-domain-tip" content="Shows the circular frequency-domain analysis of the audio." />
                   <span className="text-sm text-gray-500 mt-2" data-tooltip-id="circular-frequency-domain-tip">
                     Circular Frequency Domain
